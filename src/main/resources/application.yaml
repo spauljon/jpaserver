@@ -354,7 +354,7 @@ hapi:
     # custom-provider-classes:
     # custom-interceptor-classes:
     # custom-provider-classes:
-    
+    custom-bean-packages: ca.uhn.fhir.jpa.message
     # store_meta_source_information: NONE
     # bundle_batch_pool_size: 10
     # bundle_batch_pool_max_size: 50
@@ -398,8 +398,9 @@ hapi:
     # -------------------------------------------------------------------------------
     # Q. Subscriptions (disabled by default)
     # -------------------------------------------------------------------------------
-    # subscription:
-    #   resthook_enabled: true
+    subscription:
+      message_enabled: true
+#      resthook_enabled: true
     #   websocket_enabled: false
     #   polling_interval_ms: 5000
     #   immediately_queued: false
@@ -418,3 +419,8 @@ hapi:
     # R. LastN (analytics)
     # -------------------------------------------------------------------------------
     # lastn_enabled: true
+nats:
+  url: nats://127.0.0.1:4222
+  stream: FHIR
+  subject: fhir.obs.vector
+  durable: vecdb

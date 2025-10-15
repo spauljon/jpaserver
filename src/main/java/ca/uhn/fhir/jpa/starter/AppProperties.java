@@ -1014,6 +1014,7 @@ public class AppProperties {
 	public static class Subscription {
 
 		private Boolean resthook_enabled = false;
+		private Boolean message_enabled = false;
 		private Boolean websocket_enabled = false;
 		private Email email = null;
 		private Integer polling_interval_ms = null;
@@ -1025,6 +1026,14 @@ public class AppProperties {
 
 		public void setResthook_enabled(Boolean resthook_enabled) {
 			this.resthook_enabled = resthook_enabled;
+		}
+
+		public Boolean getMessage_enabled() {
+			return message_enabled;
+		}
+
+		public void setMessage_enabled(Boolean message_enabled) {
+			this.message_enabled = message_enabled;
 		}
 
 		public Boolean getWebsocket_enabled() {

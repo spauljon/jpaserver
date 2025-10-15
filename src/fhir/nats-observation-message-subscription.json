@@ -1,0 +1,27 @@
+{
+  "id": "nats-observation-subscription",
+  "meta": {
+    "tag": [
+      {
+        "system": "https://wiki.mobilehealth.va.gov/x/Onc1C",
+        "code": "34a800fa-ffa9-4cb9-99ed-0aa4d0fEcef2",
+        "display": "SMART PGD FHIR Implementation Team"
+      }
+    ]
+  },
+  "resourceType": "Subscription",
+  "criteria": "Observation?",
+  "reason": "Sync Observations to Vector Embeddings",
+  "status": "active",
+  "channel": {
+    "type": "message",
+    "endpoint": "channel:nats",
+    "payload": "application/fhir+json",
+    "extension": [
+      {
+        "url": "http://hapifhir.io/fhir/StructureDefinition/subscription-send-delete-messages",
+        "valueBoolean": true
+      }
+    ]
+  }
+}

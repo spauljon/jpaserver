@@ -1,25 +1,19 @@
-version: "3"
 services:
-  hapi-fhir-jpaserver-start:
-    build: .
-    container_name: hapi-fhir-jpaserver-start
-    restart: on-failure
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://hapi-fhir-postgres:5432/hapi"
-      SPRING_DATASOURCE_USERNAME: "admin"
-      SPRING_DATASOURCE_PASSWORD: "admin"
-      SPRING_DATASOURCE_DRIVERCLASSNAME: "org.postgresql.Driver"
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-c", "/etc/nats/nats-server.conf"]
     ports:
-      - "8080:8080"
-  hapi-fhir-postgres:
-    image: postgres:15-alpine
-    container_name: hapi-fhir-postgres
-    restart: always
-    environment:
-      POSTGRES_DB: "hapi"
-      POSTGRES_USER: "admin"
-      POSTGRES_PASSWORD: "admin"
+      - "4222:4222"   # client
+      - "8222:8222"   # monitoring
+      - "7422:7422"   # leafnodes (unused, but handy)
     volumes:
-      - hapi-fhir-postgres:/var/lib/postgresql/data
-volumes:
-  hapi-fhir-postgres:
+      - ./nats/config:/etc/nats
+      - ./nats/data:/var/lib/nats
+    restart: unless-stopped
+
+  nats-box:
+    image: synadia/nats-box:latest
+    depends_on: [nats]
+    environment:
+      - NATS_URL=nats://nats:4222
+    entrypoint: ["/bin/sh","-lc","sleep infinity"]

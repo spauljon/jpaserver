@@ -1,0 +1,39 @@
+services:
+  nats:
+    image: nats:2.12-alpine
+    container_name: nats
+    command: [ "-js", "-c", "/etc/nats/nats-server.conf" ]
+    ports:
+      - "4222:4222"   # client
+      - "8222:8222"   # monitoring
+      - "7422:7422"   # leafnodes (unused, but handy)
+    volumes:
+      - ./nats-server.conf:/etc/nats/nats-server.conf:ro
+      - nats_data:/var/lib/nats
+    restart: unless-stopped
+
+  nats-box:
+    image: natsio/nats-box:latest
+    container_name: nats-box
+    platform: linux/arm64
+    command: [ "/bin/sh", "-lc", "exec /bin/sh" ]  # drop you into a shell with `nats`
+    tty: true
+    stdin_open: true
+
+  terraform:
+    image: hashicorp/terraform:1.13.3
+    container_name: tf
+    working_dir: /workspace
+    volumes:
+      - ../terraform/:/workspace:rw
+      - tfstate:/workspace/.terraform
+      - tfplugin-cache:/root/.terraform.d/plugin-cache
+    environment:
+      TF_PLUGIN_CACHE_DIR: /root/.terraform.d/plugin-cache
+      TF_INPUT: "0"
+    entrypoint: [ "tail", "-f", "/.dockerenv" ]
+
+volumes:
+  nats_data:
+  tfstate:
+  tfplugin-cache:

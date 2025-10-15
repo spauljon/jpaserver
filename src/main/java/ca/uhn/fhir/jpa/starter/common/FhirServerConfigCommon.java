@@ -16,6 +16,7 @@ import ca.uhn.fhir.jpa.subscription.match.deliver.email.IEmailSender;
 import ca.uhn.fhir.rest.server.mail.MailConfig;
 import ca.uhn.fhir.rest.server.mail.MailSvc;
 import com.google.common.base.Strings;
+import org.hl7.fhir.dstu2.model.Subscription;
 import org.hl7.fhir.r4.model.Bundle.BundleType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,6 +125,11 @@ public class FhirServerConfigCommon {
 				ourLog.info("Enabling REST-hook subscriptions");
 				subscriptionSettings.addSupportedSubscriptionType(
 						org.hl7.fhir.dstu2.model.Subscription.SubscriptionChannelType.RESTHOOK);
+			}
+			if (appProperties.getSubscription().getMessage_enabled()) {
+				ourLog.info("Enabling Message subscriptions");
+				subscriptionSettings.addSupportedSubscriptionType(
+						Subscription.SubscriptionChannelType.MESSAGE);
 			}
 			if (appProperties.getSubscription().getEmail() != null) {
 				ourLog.info("Enabling email subscriptions");

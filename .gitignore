@@ -167,3 +167,8 @@ Temporary Items
 
 # Helm Chart dependencies
 **/charts/*.tgz
+
+# terraforn
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
