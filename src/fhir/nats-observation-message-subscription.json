@@ -15,7 +15,7 @@
   "status": "active",
   "channel": {
     "type": "message",
-    "endpoint": "channel:nats",
+    "endpoint": "channel:fhirObservation",
     "payload": "application/fhir+json",
     "extension": [
       {

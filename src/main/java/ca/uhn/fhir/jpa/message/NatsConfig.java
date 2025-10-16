@@ -1,50 +1,84 @@
 package ca.uhn.fhir.jpa.message;
 
-import ca.uhn.fhir.interceptor.api.IInterceptorService;
+import ca.uhn.fhir.broker.api.ChannelProducerSettings;
+import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.jpa.subscription.channel.impl.LinkedBlockingChannelFactory;
+import ca.uhn.fhir.jpa.subscription.model.ResourceModifiedMessage;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
-import io.nats.client.JetStreamApiException;
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.PostConstruct;
+import io.nats.client.Nats;
+import io.nats.client.Options;
+import org.hl7.fhir.r4.model.Observation;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.SubscribableChannel;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.Optional;
 
-import static io.nats.client.Nats.connect;
+import static ca.uhn.fhir.context.FhirContext.forR4;
 
 @Configuration
 public class NatsConfig {
-    private final IInterceptorService interceptorService;
+    private final FhirContext fhirContext = forR4();
 
-    private final JetStream jetStream;
-
-    private final String subject;
-
-    public NatsConfig(@Nonnull final IInterceptorService interceptorService,
-                      @Value("${nats.subject}") String subject,
-                      @Value("${nats.url}") String url,
-                      @Value("${nats.stream}") String stream)
-            throws IOException, InterruptedException, JetStreamApiException {
-        this.interceptorService = interceptorService;
-        this.jetStream = getJetStream(connect(url), stream);
-
-        this.subject = subject;
+    @Bean
+    public SubscribableChannel fhirObservation(
+            @Nonnull final LinkedBlockingChannelFactory factory,
+            @Value("${nats.channel}") String channel) {
+        return Optional.of(factory.getOrCreateProducer(
+                               channel,
+                               new ChannelProducerSettings() {
+                                   @Override
+                                   public Integer getConcurrentConsumers() {
+                                       return 4;
+                                   }
+                               }))
+                       .filter(SubscribableChannel.class::isInstance)
+                       .map(c -> (SubscribableChannel) c)
+                       .orElseThrow();
     }
 
-    @PostConstruct
-    public void natsMessageInterceptor() {
-        interceptorService.registerInterceptor(new NatsMessageInterceptor(jetStream, subject));
+    @Bean(destroyMethod = "close")
+    public Connection natsConnection(@Value("${nats.url}") String url)
+            throws IOException, InterruptedException {
+        final var opts = new Options.Builder()
+                .server(url)
+                .connectionName("hapi-fhir-message-bridge")
+                .build();
+        return Nats.connect(opts);
     }
 
-    private JetStream getJetStream(@Nonnull final Connection conn,
-                                   @Nonnull final String stream)
-            throws IOException, JetStreamApiException {
-        final var jsm = conn.jetStreamManagement();
-
-        jsm.getStreamInfo(stream);
-
-        return conn.jetStream();
+    @Bean
+    public JetStream jetStream(@Nonnull final Connection nats) throws IOException {
+        return nats.jetStream();
     }
 
+    /**
+     * Subscribe a simple MessageHandler to the channel (no Spring Integration).
+     * It publishes the payload to JetStream.
+     */
+    @Bean
+    public InitializingBean bindFhirObservationToNats(
+            @Nonnull @Qualifier("fhirObservation") final SubscribableChannel channel,
+            @Nonnull final JetStream js,
+            @Value("${nats.subject}") String subject) {
+        final var publisher = new ObservationPublisher(js, subject);
+
+        return () -> channel.subscribe(message -> {
+            Optional.of(message.getPayload())
+                    .filter(ResourceModifiedMessage.class::isInstance)
+                    .map(ResourceModifiedMessage.class::cast)
+                    .map(p -> p.getResource(fhirContext))
+                    .filter(Observation.class::isInstance)
+                    .map(Observation.class::cast)
+                    .ifPresent(o -> publisher
+                            .publish(o, ((ResourceModifiedMessage) message.getPayload())
+                                    .getOperationType()));
+        });
+    }
 }

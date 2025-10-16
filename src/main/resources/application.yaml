@@ -420,7 +420,6 @@ hapi:
     # -------------------------------------------------------------------------------
     # lastn_enabled: true
 nats:
+  channel: fhirObservation
   url: nats://127.0.0.1:4222
-  stream: FHIR
   subject: fhir.obs.vector
-  durable: vecdb
